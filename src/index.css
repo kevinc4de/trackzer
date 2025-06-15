@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --trackzer-primary: #0070ba;
+  --trackzer-primary-dark: #005ea6;
+  --trackzer-secondary: #009cde;
+  --trackzer-accent: #ffc439;
+  --trackzer-success: #00d924;
+  --trackzer-warning: #ff9500;
+  --trackzer-error: #d93025;
+  --trackzer-dark: #2c2e2f;
+  --trackzer-light: #f7f9fa;
+  --trackzer-gray: #6c7378;
+  --trackzer-border: #c7c7c7;
+}
+
+* {
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  background: #f7f9fa;
+  min-height: 100vh;
+}
+
+.trackzer-gradient {
+  background: linear-gradient(135deg, var(--trackzer-primary) 0%, var(--trackzer-secondary) 100%);
+}
+
+.trackzer-card {
+  background: #ffffff;
+  border: 1px solid #e1e7ec;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.trackzer-button {
+  background: var(--trackzer-primary);
+  transition: all 0.2s ease;
+  border-radius: 24px;
+}
+
+.trackzer-button:hover {
+  background: var(--trackzer-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 112, 186, 0.3);
+}
+
+.trackzer-button-secondary {
+  background: #ffffff;
+  border: 1px solid var(--trackzer-border);
+  color: var(--trackzer-dark);
+  transition: all 0.2s ease;
+  border-radius: 24px;
+}
+
+.trackzer-button-secondary:hover {
+  border-color: var(--trackzer-primary);
+  color: var(--trackzer-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.trackzer-input {
+  border: 1px solid var(--trackzer-border);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.trackzer-input:focus {
+  border-color: var(--trackzer-primary);
+  box-shadow: 0 0 0 3px rgba(0, 112, 186, 0.1);
+  outline: none;
+}
+
+.leaflet-container {
+  border-radius: 8px;
+  z-index: 1;
+}
+
+.paypal-shadow {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.paypal-shadow-lg {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.floating-animation {
+  animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes floating {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
