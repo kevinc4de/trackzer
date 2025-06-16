@@ -19,52 +19,27 @@ export const SearchPhone: React.FC = () => {
     setError('');
     
     try {
-      const phones = await phoneService.searchPhones({ imei: imei });
+      const phones = await phoneService.searchByIMEI(imei);
       
       const results: SearchResult[] = phones.map(phone => {
-        // Transform database phone object to PhoneType
-        const transformedPhone: PhoneType = {
-          id: phone.id,
-          imei: phone.imei,
-          brand: phone.brand,
-          model: phone.model,
-          color: phone.color || '',
-          status: phone.status,
-          description: phone.description,
-          reward: phone.reward || undefined,
-          owner: {
-            name: phone.owner_name,
-            phone: phone.owner_phone,
-            email: phone.owner_email
-          },
-          lastKnownLocation: {
-            address: phone.location_address,
-            latitude: phone.location_lat,
-            longitude: phone.location_lng
-          },
-          reportedDate: phone.reported_date || phone.created_at || new Date().toISOString(),
-          createdAt: phone.created_at || new Date().toISOString(),
-          updatedAt: phone.updated_at || new Date().toISOString()
-        };
-
         let confidence = 0;
         let matchType: 'exact' | 'partial' | 'similar' = 'similar';
         
-        if (transformedPhone.imei === imei) {
+        if (phone.imei === imei) {
           confidence = 100;
           matchType = 'exact';
-        } else if (transformedPhone.imei.includes(imei) || imei.includes(transformedPhone.imei.slice(0, 8))) {
+        } else if (phone.imei.includes(imei) || imei.includes(phone.imei.slice(0, 8))) {
           confidence = 75;
           matchType = 'partial';
-        } else if (transformedPhone.imei.slice(0, 6) === imei.slice(0, 6)) {
+        } else if (phone.imei.slice(0, 6) === imei.slice(0, 6)) {
           confidence = 30;
           matchType = 'similar';
         }
         
         return {
-          phone: transformedPhone,
+          phone,
           confidence,
-          lastSeen: new Date(transformedPhone.reportedDate).toLocaleString('fr-FR'),
+          lastSeen: new Date(phone.reportedDate).toLocaleString('fr-FR'),
           matchType
         };
       });

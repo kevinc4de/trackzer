@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart3, MapPin, TrendingUp, AlertTriangle, CheckCircle, Clock, Users, Phone, Smartphone } from 'lucide-react';
 import { PhoneType } from '../types';
 import { MapComponent } from './MapComponent';
-import { phoneService, Phone } from '../services/phoneService';
+import { phoneService } from '../services/phoneService';
 
 export const Dashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30d');
@@ -21,53 +21,16 @@ export const Dashboard: React.FC = () => {
     loadData();
   }, []);
 
-  // Transform Phone data to PhoneType
-  const transformPhoneData = (phone: Phone): PhoneType => {
-    return {
-      id: phone.id,
-      imei: phone.imei,
-      brand: phone.brand,
-      model: phone.model,
-      color: phone.color || '',
-      status: phone.status,
-      reportedDate: phone.reported_date || phone.created_at || new Date().toISOString(),
-      lastKnownLocation: {
-        lat: phone.location_lat,
-        lng: phone.location_lng,
-        address: phone.location_address
-      },
-      owner: {
-        name: phone.owner_name,
-        phone: phone.owner_phone,
-        email: phone.owner_email
-      },
-      description: phone.description,
-      reward: phone.reward || undefined
-    };
-  };
-
   const loadData = async () => {
     try {
       setLoading(true);
       const [phonesData, statsData] = await Promise.all([
-        phoneService.searchPhones(), // Get all phones without filters
-        phoneService.getPhoneStatistics()
+        phoneService.getAllPhones(),
+        phoneService.getStats()
       ]);
       
-      // Transform the phone data to match PhoneType interface
-      const transformedPhones = phonesData.map(transformPhoneData);
-      setPhones(transformedPhones);
-      
-      // Calculate recovery rate
-      const recoveryRate = statsData.total > 0 ? Math.round((statsData.found / statsData.total) * 100) : 0;
-      
-      setStats({
-        total: statsData.total,
-        lost: statsData.lost,
-        stolen: statsData.stolen,
-        found: statsData.found,
-        recovery_rate: recoveryRate
-      });
+      setPhones(phonesData);
+      setStats(statsData);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       setError(error instanceof Error ? error.message : 'Erreur lors du chargement');
