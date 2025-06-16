@@ -401,3 +401,5 @@ export default function ReportPhone({ onSuccess }: ReportPhoneProps) {
     </div>
   );
 }
+
+export { ReportPhone }
