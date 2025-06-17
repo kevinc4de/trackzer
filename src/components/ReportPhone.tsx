@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle, MapPin, Check, Smartphone, Shield } from 'lucide-react';
-import { getRandomCameroonCity } from '../data/mockData';
 import { MapComponent } from './MapComponent';
+import { LocationInput } from './LocationInput';
 import { phoneService } from '../services/phoneService';
 
 interface FormData {
@@ -46,22 +46,8 @@ export const ReportPhone: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(false);
   const [reportId, setReportId] = useState<string>('');
   const [error, setError] = useState<string>('');
-
-  const cameroonCities = [
-    { name: 'Yaoundé', lat: 3.8480, lng: 11.5021 },
-    { name: 'Douala', lat: 4.0511, lng: 9.7679 },
-    { name: 'Bafoussam', lat: 5.4781, lng: 10.4167 },
-    { name: 'Bamenda', lat: 5.9631, lng: 10.1591 },
-    { name: 'Garoua', lat: 9.3265, lng: 13.3958 },
-    { name: 'Maroua', lat: 10.5906, lng: 14.3172 },
-    { name: 'Ngaoundéré', lat: 7.3167, lng: 13.5833 },
-    { name: 'Bertoua', lat: 4.5833, lng: 13.6833 },
-    { name: 'Ebolowa', lat: 2.9167, lng: 11.1500 },
-    { name: 'Kribi', lat: 2.9333, lng: 9.9167 }
-  ];
 
   const handleInputChange = (field: string, value: string) => {
     setError('');
@@ -83,69 +69,15 @@ export const ReportPhone: React.FC = () => {
     }
   };
 
-  const getCurrentLocation = () => {
-    setLocationLoading(true);
-    
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          
-          // Find nearest Cameroon city
-          let nearestCity = cameroonCities[0];
-          let minDistance = Number.MAX_VALUE;
-          
-          cameroonCities.forEach(city => {
-            const distance = Math.sqrt(
-              Math.pow(city.lat - latitude, 2) + Math.pow(city.lng - longitude, 2)
-            );
-            if (distance < minDistance) {
-              minDistance = distance;
-              nearestCity = city;
-            }
-          });
-          
-          const mockAddress = `${latitude.toFixed(4)}, ${longitude.toFixed(4)} - ${nearestCity.name}, Cameroun`;
-          
-          setFormData(prev => ({
-            ...prev,
-            location: {
-              address: mockAddress,
-              lat: latitude,
-              lng: longitude
-            }
-          }));
-          
-          setLocationLoading(false);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          // Use a random Cameroon city as fallback
-          const randomCity = getRandomCameroonCity();
-          setFormData(prev => ({
-            ...prev,
-            location: {
-              address: `${randomCity.name}, Cameroun`,
-              lat: randomCity.lat,
-              lng: randomCity.lng
-            }
-          }));
-          setLocationLoading(false);
-        }
-      );
-    } else {
-      // Use a random Cameroon city as fallback
-      const randomCity = getRandomCameroonCity();
-      setFormData(prev => ({
-        ...prev,
-        location: {
-          address: `${randomCity.name}, Cameroun`,
-          lat: randomCity.lat,
-          lng: randomCity.lng
-        }
-      }));
-      setLocationLoading(false);
-    }
+  const handleLocationChange = (address: string, lat?: number, lng?: number) => {
+    setFormData(prev => ({
+      ...prev,
+      location: {
+        address,
+        lat: lat || prev.location.lat,
+        lng: lng || prev.location.lng
+      }
+    }));
   };
 
   const validateForm = () => {
@@ -452,33 +384,14 @@ export const ReportPhone: React.FC = () => {
               <div className="space-y-4 sm:space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
-                    Ville et adresse *
+                    Ville et quartier *
                   </label>
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                    <input
-                      type="text"
-                      value={formData.location.address}
-                      onChange={(e) => handleInputChange('location.address', e.target.value)}
-                      placeholder="Yaoundé, Douala, Bafoussam, Bamenda..."
-                      className="trackzer-input flex-1 px-3 sm:px-4 py-2 sm:py-3"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={getCurrentLocation}
-                      disabled={locationLoading}
-                      className="trackzer-button px-3 sm:px-4 py-2 sm:py-3 text-white disabled:opacity-50 flex items-center justify-center font-medium"
-                    >
-                      {locationLoading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
-                      ) : (
-                        <>
-                          <MapPin className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-0" />
-                          <span className="sm:hidden ml-2">Localiser</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  <LocationInput
+                    value={formData.location.address}
+                    onChange={handleLocationChange}
+                    placeholder="Ex: Akwa, Douala ou Centre-ville, Yaoundé..."
+                    required
+                  />
                 </div>
 
                 {/* Mini Map */}
@@ -489,7 +402,7 @@ export const ReportPhone: React.FC = () => {
                       phones={[]} 
                       center={[formData.location.lat, formData.location.lng]}
                       height="250px"
-                      zoom={10}
+                      zoom={12}
                     />
                   </div>
                 )}

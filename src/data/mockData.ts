@@ -1,20 +1,5 @@
 import { PhoneType } from '../types';
-
-// Coordonnées réelles des principales villes du Cameroun
-const cameroonCities = [
-  { name: 'Yaoundé', lat: 3.8480, lng: 11.5021 },
-  { name: 'Douala', lat: 4.0511, lng: 9.7679 },
-  { name: 'Bafoussam', lat: 5.4781, lng: 10.4167 },
-  { name: 'Bamenda', lat: 5.9631, lng: 10.1591 },
-  { name: 'Garoua', lat: 9.3265, lng: 13.3958 },
-  { name: 'Maroua', lat: 10.5906, lng: 14.3172 },
-  { name: 'Ngaoundéré', lat: 7.3167, lng: 13.5833 },
-  { name: 'Bertoua', lat: 4.5833, lng: 13.6833 },
-  { name: 'Ebolowa', lat: 2.9167, lng: 11.1500 },
-  { name: 'Kribi', lat: 2.9333, lng: 9.9167 },
-  { name: 'Limbe', lat: 4.0167, lng: 9.2167 },
-  { name: 'Buea', lat: 4.1500, lng: 9.2833 }
-];
+import { cameroonLocations, getFormattedAddress } from './cameroonLocations';
 
 export const mockPhones: PhoneType[] = [
   {
@@ -26,8 +11,8 @@ export const mockPhones: PhoneType[] = [
     status: 'stolen',
     reportedDate: '2024-01-15T10:30:00Z',
     lastKnownLocation: {
-      lat: 3.8480,
-      lng: 11.5021,
+      lat: 3.8667,
+      lng: 11.5167,
       address: 'Centre-ville, Yaoundé, Cameroun'
     },
     owner: {
@@ -47,8 +32,8 @@ export const mockPhones: PhoneType[] = [
     status: 'lost',
     reportedDate: '2024-01-20T14:15:00Z',
     lastKnownLocation: {
-      lat: 4.0511,
-      lng: 9.7679,
+      lat: 4.0500,
+      lng: 9.7000,
       address: 'Akwa, Douala, Cameroun'
     },
     owner: {
@@ -68,9 +53,9 @@ export const mockPhones: PhoneType[] = [
     status: 'found',
     reportedDate: '2024-01-18T09:45:00Z',
     lastKnownLocation: {
-      lat: 5.4781,
+      lat: 5.4833,
       lng: 10.4167,
-      address: 'Centre-ville, Bafoussam, Cameroun'
+      address: 'Centre-ville Bafoussam, Bafoussam, Cameroun'
     },
     owner: {
       name: 'Sophie Blanc',
@@ -88,8 +73,8 @@ export const mockPhones: PhoneType[] = [
     status: 'stolen',
     reportedDate: '2024-01-22T16:20:00Z',
     lastKnownLocation: {
-      lat: 5.9631,
-      lng: 10.1591,
+      lat: 5.9667,
+      lng: 10.1500,
       address: 'Commercial Avenue, Bamenda, Cameroun'
     },
     owner: {
@@ -109,8 +94,8 @@ export const mockPhones: PhoneType[] = [
     status: 'lost',
     reportedDate: '2024-01-25T11:30:00Z',
     lastKnownLocation: {
-      lat: 9.3265,
-      lng: 13.3958,
+      lat: 9.3167,
+      lng: 13.3833,
       address: 'Grand Marché, Garoua, Cameroun'
     },
     owner: {
@@ -130,9 +115,9 @@ export const mockPhones: PhoneType[] = [
     status: 'stolen',
     reportedDate: '2024-01-28T08:15:00Z',
     lastKnownLocation: {
-      lat: 10.5906,
-      lng: 14.3172,
-      address: 'Quartier Domayo, Maroua, Cameroun'
+      lat: 10.6000,
+      lng: 14.3333,
+      address: 'Domayo, Maroua, Cameroun'
     },
     owner: {
       name: 'Ibrahim Moussa',
@@ -144,9 +129,10 @@ export const mockPhones: PhoneType[] = [
   }
 ];
 
-// Fonction pour obtenir une ville aléatoire du Cameroun
+// Fonction pour obtenir une localisation aléatoire du Cameroun
 export const getRandomCameroonCity = () => {
-  return cameroonCities[Math.floor(Math.random() * cameroonCities.length)];
+  const cities = cameroonLocations.filter(loc => loc.type === 'city');
+  return cities[Math.floor(Math.random() * cities.length)];
 };
 
 export const generateIMEI = (): string => {
