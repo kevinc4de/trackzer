@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Search, Loader2, CheckCircle } from 'lucide-react';
+import { MapPin, Search, Loader2, CheckCircle, Wifi, Satellite, Database } from 'lucide-react';
 import { geolocationService, GeolocationResult } from '../services/geolocationService';
 
 interface LocationInputProps {
@@ -20,7 +20,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [locationAccuracy, setLocationAccuracy] = useState<'high' | 'medium' | 'low' | null>(null);
+  const [locationResult, setLocationResult] = useState<GeolocationResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -53,14 +53,14 @@ export const LocationInput: React.FC<LocationInputProps> = ({
       setShowSuggestions(false);
     }
     
-    setLocationAccuracy(null);
+    setLocationResult(null);
   };
 
   const handleSuggestionClick = async (suggestion: string) => {
     const result = await geolocationService.geocodeAddress(suggestion);
     if (result) {
       onChange(result.address, result.lat, result.lng);
-      setLocationAccuracy(result.accuracy);
+      setLocationResult(result);
     } else {
       onChange(suggestion);
     }
@@ -72,41 +72,70 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     try {
       const result: GeolocationResult = await geolocationService.getCurrentPosition();
       onChange(result.address, result.lat, result.lng);
-      setLocationAccuracy(result.accuracy);
+      setLocationResult(result);
     } catch (error) {
       console.error('Erreur de géolocalisation:', error);
       // Fallback vers une localisation aléatoire
       const randomLocation = geolocationService.getRandomCameroonLocation();
-      onChange(`${randomLocation.name}, Cameroun`, randomLocation.lat, randomLocation.lng);
-      setLocationAccuracy('low');
+      const fallbackResult: GeolocationResult = {
+        lat: randomLocation.lat,
+        lng: randomLocation.lng,
+        address: `${randomLocation.name}, Cameroun`,
+        accuracy: 'low',
+        source: 'database'
+      };
+      onChange(fallbackResult.address, fallbackResult.lat, fallbackResult.lng);
+      setLocationResult(fallbackResult);
     } finally {
       setIsLoadingLocation(false);
     }
   };
 
   const getAccuracyIcon = () => {
-    switch (locationAccuracy) {
-      case 'high':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'medium':
-        return <MapPin className="h-4 w-4 text-yellow-500" />;
-      case 'low':
-        return <MapPin className="h-4 w-4 text-orange-500" />;
+    if (!locationResult) return null;
+    
+    switch (locationResult.source) {
+      case 'gps':
+        return <Satellite className="h-4 w-4 text-green-500" />;
+      case 'network':
+        return <Wifi className="h-4 w-4 text-blue-500" />;
+      case 'database':
+        return <Database className="h-4 w-4 text-orange-500" />;
       default:
-        return null;
+        return <MapPin className="h-4 w-4 text-gray-500" />;
     }
   };
 
   const getAccuracyText = () => {
-    switch (locationAccuracy) {
+    if (!locationResult) return '';
+    
+    const sourceText = {
+      gps: 'GPS',
+      network: 'Réseau',
+      database: 'Base de données'
+    };
+    
+    const accuracyText = {
+      high: 'Précision élevée',
+      medium: 'Précision moyenne',
+      low: 'Précision faible'
+    };
+    
+    return `${accuracyText[locationResult.accuracy]} (${sourceText[locationResult.source]})`;
+  };
+
+  const getAccuracyColor = () => {
+    if (!locationResult) return 'text-gray-500';
+    
+    switch (locationResult.accuracy) {
       case 'high':
-        return 'Position précise';
+        return 'text-green-600';
       case 'medium':
-        return 'Position approximative';
+        return 'text-blue-600';
       case 'low':
-        return 'Position estimée';
+        return 'text-orange-600';
       default:
-        return '';
+        return 'text-gray-500';
     }
   };
 
@@ -129,7 +158,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
             required={required}
           />
           
-          {locationAccuracy && (
+          {locationResult && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
               {getAccuracyIcon()}
             </div>
@@ -140,7 +169,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
           type="button"
           onClick={getCurrentLocation}
           disabled={isLoadingLocation}
-          className="trackzer-button px-4 py-3 text-white disabled:opacity-50 flex items-center justify-center font-medium min-w-[120px]"
+          className="trackzer-button px-4 py-3 text-white disabled:opacity-50 flex items-center justify-center font-medium min-w-[140px]"
           title="Utiliser ma position actuelle"
         >
           {isLoadingLocation ? (
@@ -148,33 +177,40 @@ export const LocationInput: React.FC<LocationInputProps> = ({
           ) : (
             <>
               <MapPin className="h-5 w-5 mr-2" />
-              <span className="hidden sm:inline">Localiser</span>
+              <span className="hidden sm:inline">Ma position</span>
             </>
           )}
         </button>
       </div>
 
-      {locationAccuracy && (
-        <p className="mt-2 text-xs text-gray-500 flex items-center">
+      {locationResult && (
+        <div className={`mt-2 text-xs flex items-center ${getAccuracyColor()}`}>
           {getAccuracyIcon()}
           <span className="ml-1">{getAccuracyText()}</span>
-        </p>
+        </div>
       )}
 
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto"
         >
           {suggestions.map((suggestion, index) => (
             <button
               key={index}
               type="button"
               onClick={() => handleSuggestionClick(suggestion)}
-              className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0 flex items-center"
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none border-b border-gray-100 last:border-b-0 flex items-center transition-colors duration-150"
             >
               <MapPin className="h-4 w-4 text-gray-400 mr-3 flex-shrink-0" />
-              <span className="text-gray-900">{suggestion}</span>
+              <div className="flex-1">
+                <span className="text-gray-900 font-medium">{suggestion.split(',')[0]}</span>
+                {suggestion.includes(',') && (
+                  <span className="text-gray-500 text-sm ml-1">
+                    {suggestion.split(',').slice(1).join(',')}
+                  </span>
+                )}
+              </div>
             </button>
           ))}
         </div>
