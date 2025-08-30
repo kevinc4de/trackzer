@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { AlertTriangle, MapPin, Check, Smartphone, Shield } from 'lucide-react';
 import { MapComponent } from './MapComponent';
 import { LocationInput } from './LocationInput';
-import { phoneService } from '../services/phoneService';
+import { usePhoneReport } from '../hooks/usePhoneReport';
+import { validation } from '../utils/validation';
+import { analytics } from '../utils/analytics';
 
 interface FormData {
   imei: string;
@@ -44,13 +46,21 @@ export const ReportPhone: React.FC = () => {
     }
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [reportId, setReportId] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  
+  const {
+    isSubmitting,
+    isSubmitted,
+    reportId,
+    error,
+    submitReport,
+    resetForm: resetReportForm,
+    clearError
+  } = usePhoneReport();
 
   const handleInputChange = (field: string, value: string) => {
-    setError('');
+    clearError();
+    setValidationErrors(prev => ({ ...prev, [field]: '' }));
     
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
@@ -81,33 +91,84 @@ export const ReportPhone: React.FC = () => {
   };
 
   const validateForm = () => {
-    const { imei, brand, model, owner, location, description } = formData;
-    return (
-      imei.length === 15 &&
-      brand.trim() &&
-      model.trim() &&
-      owner.name.trim() &&
-      owner.phone.trim() &&
-      owner.email.trim() &&
-      location.address.trim() &&
-      description.trim() &&
-      location.lat !== undefined &&
-      location.lng !== undefined
-    );
+    const errors: Record<string, string> = {};
+    
+    // Validate IMEI
+    const imeiValidation = validation.validateIMEI(formData.imei);
+    if (!imeiValidation.isValid) {
+      errors.imei = imeiValidation.error || 'IMEI invalide';
+    }
+    
+    // Validate brand and model
+    const brandValidation = validation.validateRequiredText(formData.brand, 'Marque');
+    if (!brandValidation.isValid) {
+      errors.brand = brandValidation.error || 'Marque invalide';
+    }
+    
+    const modelValidation = validation.validateRequiredText(formData.model, 'Modèle');
+    if (!modelValidation.isValid) {
+      errors.model = modelValidation.error || 'Modèle invalide';
+    }
+    
+    // Validate owner information
+    const nameValidation = validation.validateRequiredText(formData.owner.name, 'Nom');
+    if (!nameValidation.isValid) {
+      errors['owner.name'] = nameValidation.error || 'Nom invalide';
+    }
+    
+    const phoneValidation = validation.validateCameroonPhone(formData.owner.phone);
+    if (!phoneValidation.isValid) {
+      errors['owner.phone'] = phoneValidation.error || 'Téléphone invalide';
+    }
+    
+    const emailValidation = validation.validateEmail(formData.owner.email);
+    if (!emailValidation.isValid) {
+      errors['owner.email'] = emailValidation.error || 'Email invalide';
+    }
+    
+    // Validate location
+    const addressValidation = validation.validateRequiredText(formData.location.address, 'Adresse');
+    if (!addressValidation.isValid) {
+      errors['location.address'] = addressValidation.error || 'Adresse invalide';
+    }
+    
+    if (formData.location.lat && formData.location.lng) {
+      const coordsValidation = validation.validateCameroonCoordinates(formData.location.lat, formData.location.lng);
+      if (!coordsValidation.isValid) {
+        errors['location.coords'] = coordsValidation.error || 'Coordonnées invalides';
+      }
+    }
+    
+    // Validate description
+    const descValidation = validation.validateRequiredText(formData.description, 'Description', 10);
+    if (!descValidation.isValid) {
+      errors.description = descValidation.error || 'Description invalide';
+    }
+    
+    // Validate reward if provided
+    if (formData.reward !== undefined) {
+      const rewardValidation = validation.validateReward(formData.reward);
+      if (!rewardValidation.isValid) {
+        errors.reward = rewardValidation.error || 'Récompense invalide';
+      }
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
-      setError('Veuillez remplir tous les champs obligatoires.');
       return;
     }
 
-    setIsSubmitting(true);
-    setError('');
-    
     try {
+      // Format phone number
+      const phoneValidation = validation.validateCameroonPhone(formData.owner.phone);
+      const formattedPhone = phoneValidation.formatted || formData.owner.phone;
+      
       const phoneData = {
         imei: formData.imei,
         brand: formData.brand,
@@ -117,25 +178,24 @@ export const ReportPhone: React.FC = () => {
         description: formData.description,
         reward: formData.reward,
         owner_name: formData.owner.name,
-        owner_phone: formData.owner.phone,
+        owner_phone: formattedPhone,
         owner_email: formData.owner.email,
         location_address: formData.location.address,
         location_lat: formData.location.lat!,
         location_lng: formData.location.lng!
       };
 
-      const result = await phoneService.createPhone(phoneData);
-      setReportId(result.id);
-      setIsSubmitted(true);
+      await submitReport(phoneData);
+      
+      // Track successful report
+      analytics.trackPhoneReport(formData.status, formData.brand);
     } catch (error) {
-      console.error('Error submitting report:', error);
-      setError(error instanceof Error ? error.message : 'Une erreur est survenue lors de l\'enregistrement');
-    } finally {
-      setIsSubmitting(false);
+      const appError = errorHandler.handleDatabaseError(error, 'phone_report');
+      analytics.trackError(appError.message, 'report');
     }
   };
 
-  const resetForm = () => {
+  const handleResetForm = () => {
     setFormData({
       imei: '',
       brand: '',
@@ -154,10 +214,11 @@ export const ReportPhone: React.FC = () => {
         lng: 12.3547
       }
     });
-    setIsSubmitted(false);
-    setReportId('');
-    setError('');
+    setValidationErrors({});
+    resetReportForm();
   };
+
+  const getFieldError = (field: string) => validationErrors[field];
 
   if (isSubmitted) {
     return (
@@ -188,7 +249,7 @@ export const ReportPhone: React.FC = () => {
             </div>
             
             <button
-              onClick={resetForm}
+              onClick={handleResetForm}
               className="trackzer-button px-6 sm:px-8 py-3 sm:py-4 text-white font-semibold text-base sm:text-lg paypal-shadow w-full sm:w-auto"
             >
               Nouveau signalement
@@ -242,13 +303,25 @@ export const ReportPhone: React.FC = () => {
                     value={formData.imei}
                     onChange={(e) => handleInputChange('imei', e.target.value.replace(/\D/g, '').slice(0, 15))}
                     placeholder="356938035643809"
-                    className="trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3"
+                    className={`trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3 ${
+                      getFieldError('imei') ? 'border-red-300 focus:border-red-500' : ''
+                    }`}
                     maxLength={15}
                     required
                   />
-                  <p className="mt-1 sm:mt-2 text-xs text-gray-500">
-                    💡 Tapez *#06# sur votre téléphone pour obtenir l'IMEI
-                  </p>
+                  <div className="mt-1 sm:mt-2 space-y-1">
+                    <p className="text-xs text-gray-500">
+                      💡 Tapez *#06# sur votre téléphone pour obtenir l'IMEI
+                    </p>
+                    {getFieldError('imei') && (
+                      <p className="text-xs text-red-600">{getFieldError('imei')}</p>
+                    )}
+                    {formData.imei.length > 0 && (
+                      <p className="text-xs text-gray-400">
+                        {formData.imei.length}/15 chiffres
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -275,9 +348,14 @@ export const ReportPhone: React.FC = () => {
                     value={formData.brand}
                     onChange={(e) => handleInputChange('brand', e.target.value)}
                     placeholder="iPhone, Samsung, Huawei..."
-                    className="trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3"
+                    className={`trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3 ${
+                      getFieldError('brand') ? 'border-red-300 focus:border-red-500' : ''
+                    }`}
                     required
                   />
+                  {getFieldError('brand') && (
+                    <p className="mt-1 text-xs text-red-600">{getFieldError('brand')}</p>
+                  )}
                 </div>
 
                 <div>
@@ -289,9 +367,14 @@ export const ReportPhone: React.FC = () => {
                     value={formData.model}
                     onChange={(e) => handleInputChange('model', e.target.value)}
                     placeholder="14 Pro, Galaxy S23, P50 Pro..."
-                    className="trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3"
+                    className={`trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3 ${
+                      getFieldError('model') ? 'border-red-300 focus:border-red-500' : ''
+                    }`}
                     required
                   />
+                  {getFieldError('model') && (
+                    <p className="mt-1 text-xs text-red-600">{getFieldError('model')}</p>
+                  )}
                 </div>
 
                 <div>
@@ -317,8 +400,14 @@ export const ReportPhone: React.FC = () => {
                     onChange={(e) => handleInputChange('reward', e.target.value)}
                     placeholder="50000"
                     min="0"
-                    className="trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3"
+                    max="10000000"
+                    className={`trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3 ${
+                      getFieldError('reward') ? 'border-red-300 focus:border-red-500' : ''
+                    }`}
                   />
+                  {getFieldError('reward') && (
+                    <p className="mt-1 text-xs text-red-600">{getFieldError('reward')}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -339,9 +428,14 @@ export const ReportPhone: React.FC = () => {
                     value={formData.owner.name}
                     onChange={(e) => handleInputChange('owner.name', e.target.value)}
                     placeholder="Jean Dupont"
-                    className="trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3"
+                    className={`trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3 ${
+                      getFieldError('owner.name') ? 'border-red-300 focus:border-red-500' : ''
+                    }`}
                     required
                   />
+                  {getFieldError('owner.name') && (
+                    <p className="mt-1 text-xs text-red-600">{getFieldError('owner.name')}</p>
+                  )}
                 </div>
 
                 <div>
@@ -353,9 +447,14 @@ export const ReportPhone: React.FC = () => {
                     value={formData.owner.phone}
                     onChange={(e) => handleInputChange('owner.phone', e.target.value)}
                     placeholder="+237 6 XX XX XX XX"
-                    className="trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3"
+                    className={`trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3 ${
+                      getFieldError('owner.phone') ? 'border-red-300 focus:border-red-500' : ''
+                    }`}
                     required
                   />
+                  {getFieldError('owner.phone') && (
+                    <p className="mt-1 text-xs text-red-600">{getFieldError('owner.phone')}</p>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">
@@ -367,9 +466,14 @@ export const ReportPhone: React.FC = () => {
                     value={formData.owner.email}
                     onChange={(e) => handleInputChange('owner.email', e.target.value)}
                     placeholder="jean.dupont@email.com"
-                    className="trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3"
+                    className={`trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3 ${
+                      getFieldError('owner.email') ? 'border-red-300 focus:border-red-500' : ''
+                    }`}
                     required
                   />
+                  {getFieldError('owner.email') && (
+                    <p className="mt-1 text-xs text-red-600">{getFieldError('owner.email')}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -390,8 +494,12 @@ export const ReportPhone: React.FC = () => {
                     value={formData.location.address}
                     onChange={handleLocationChange}
                     placeholder="Ex: Akwa, Douala ou Centre-ville, Yaoundé..."
+                    className={getFieldError('location.address') ? 'border-red-300 focus:border-red-500' : ''}
                     required
                   />
+                  {getFieldError('location.address') && (
+                    <p className="mt-1 text-xs text-red-600">{getFieldError('location.address')}</p>
+                  )}
                 </div>
 
                 {/* Mini Map */}
@@ -424,9 +532,17 @@ export const ReportPhone: React.FC = () => {
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Décrivez comment et où vous avez perdu/vous êtes fait voler votre téléphone au Cameroun..."
                   rows={4}
-                  className="trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3"
+                  className={`trackzer-input w-full px-3 sm:px-4 py-2 sm:py-3 ${
+                    getFieldError('description') ? 'border-red-300 focus:border-red-500' : ''
+                  }`}
                   required
                 />
+                {getFieldError('description') && (
+                  <p className="mt-1 text-xs text-red-600">{getFieldError('description')}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  {formData.description.length}/500 caractères (minimum 10)
+                </p>
               </div>
             </div>
 
@@ -434,7 +550,7 @@ export const ReportPhone: React.FC = () => {
             <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-4 sm:pt-6">
               <button
                 type="button"
-                onClick={resetForm}
+                onClick={handleResetForm}
                 className="trackzer-button-secondary px-6 sm:px-8 py-3 sm:py-4 font-semibold order-2 sm:order-1"
               >
                 Annuler
@@ -442,7 +558,7 @@ export const ReportPhone: React.FC = () => {
               
               <button
                 type="submit"
-                disabled={!validateForm() || isSubmitting}
+                disabled={isSubmitting || Object.keys(validationErrors).length > 0}
                 className="trackzer-button px-8 sm:px-10 py-3 sm:py-4 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-semibold text-base sm:text-lg paypal-shadow order-1 sm:order-2"
               >
                 {isSubmitting ? (

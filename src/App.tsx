@@ -5,6 +5,9 @@ import { SearchPhone } from './components/SearchPhone';
 import { ReportPhone } from './components/ReportPhone';
 import { Dashboard } from './components/Dashboard';
 import { AlertSystem } from './components/AlertSystem';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { analytics } from './utils/analytics';
+import { errorHandler } from './utils/errorHandler';
 import { Alert } from './types';
 
 function App() {
@@ -12,6 +15,9 @@ function App() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
 
   useEffect(() => {
+    // Initialize analytics
+    analytics.trackPageView('app_start');
+    
     // Simulate initial system alerts
     const initialAlerts: Alert[] = [
       {
@@ -31,6 +37,11 @@ function App() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    // Track tab changes
+    analytics.trackPageView(activeTab);
+  }, [activeTab]);
 
   const addAlert = (alert: Omit<Alert, 'id' | 'timestamp'>) => {
     const newAlert: Alert = {
@@ -67,29 +78,31 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header activeTab={activeTab} onTabChange={setActiveTab} />
-      
-      <main>
-        {renderContent()}
-      </main>
-      
-      <AlertSystem alerts={alerts} onDismiss={dismissAlert} />
-      
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <p className="text-gray-600 text-lg font-medium">
-              Trackzer - Solution de géolocalisation pour le Cameroun
-            </p>
-            <p className="text-gray-500 text-sm mt-2">
-              Service disponible dans toutes les villes du pays
-            </p>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        <Header activeTab={activeTab} onTabChange={setActiveTab} />
+        
+        <main>
+          {renderContent()}
+        </main>
+        
+        <AlertSystem alerts={alerts} onDismiss={dismissAlert} />
+        
+        {/* Footer */}
+        <footer className="bg-white border-t border-gray-200 mt-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center">
+              <p className="text-gray-600 text-lg font-medium">
+                Trackzer - Solution de géolocalisation pour le Cameroun
+              </p>
+              <p className="text-gray-500 text-sm mt-2">
+                Service disponible dans toutes les villes du pays • Données sécurisées et chiffrées
+              </p>
+            </div>
           </div>
-        </div>
-      </footer>
-    </div>
+        </footer>
+      </div>
+    </ErrorBoundary>
   );
 }
 

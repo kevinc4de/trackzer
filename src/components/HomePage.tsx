@@ -1,11 +1,17 @@
 import React from 'react';
 import { Shield, Search, AlertTriangle, MapPin, Smartphone, Users, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { analytics } from '../utils/analytics';
 
 interface HomePageProps {
   onNavigate: (tab: string) => void;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
+  const handleNavigation = (tab: string) => {
+    analytics.trackPageView(tab);
+    onNavigate(tab);
+  };
+
   const features = [
     {
       icon: <Search className="h-8 w-8 text-blue-600" />,
@@ -44,42 +50,74 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-white">
+      <section className="relative bg-white overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <img 
+            src="/back.jpg" 
+            alt="Satellite tracking background"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 via-purple-900/80 to-blue-800/90"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20"></div>
+        </div>
+        
+        {/* Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">
+          <div className="relative text-center">
             <div className="flex justify-center mb-8">
-              <div className="bg-blue-600 rounded-full p-6 paypal-shadow-lg">
+              <div className="bg-white/20 backdrop-blur-sm rounded-full p-6 paypal-shadow-lg border border-white/30">
                 <MapPin className="h-16 w-16 text-white floating-animation" />
               </div>
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-              <span className="text-blue-600">Trackzer</span>
+              <span className="text-white drop-shadow-lg">Trackzer</span>
               <br />
               <span className="text-3xl md:text-4xl font-medium text-gray-700">
-                Cameroun
+                <span className="text-blue-200 drop-shadow-lg">Cameroun</span>
               </span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
               La solution de géolocalisation la plus fiable du Cameroun pour retrouver vos téléphones perdus ou volés
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => onNavigate('search')}
-                className="trackzer-button px-8 py-4 text-white font-semibold text-lg paypal-shadow-lg"
+                onClick={() => handleNavigation('search')}
+                className="bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 px-8 py-4 text-white font-semibold text-lg paypal-shadow-lg rounded-full transition-all duration-300 hover:scale-105"
               >
                 <Search className="h-5 w-5 mr-2 inline" />
                 Rechercher Maintenant
               </button>
               <button
-                onClick={() => onNavigate('report')}
-                className="trackzer-button-secondary px-8 py-4 font-semibold text-lg"
+                onClick={() => handleNavigation('report')}
+                className="bg-red-600/90 backdrop-blur-sm border border-red-500/50 hover:bg-red-600 px-8 py-4 text-white font-semibold text-lg paypal-shadow-lg rounded-full transition-all duration-300 hover:scale-105"
               >
                 <AlertTriangle className="h-5 w-5 mr-2 inline" />
                 Signaler un Vol
               </button>
+            </div>
+            
+            {/* Trust indicators */}
+            <div className="mt-12 flex flex-wrap justify-center items-center gap-8 text-white/80">
+              <div className="flex items-center">
+                <Shield className="h-5 w-5 mr-2" />
+                <span className="text-sm font-medium">Sécurisé SSL</span>
+              </div>
+              <div className="flex items-center">
+                <CheckCircle className="h-5 w-5 mr-2" />
+                <span className="text-sm font-medium">Données Chiffrées</span>
+              </div>
+              <div className="flex items-center">
+                <Users className="h-5 w-5 mr-2" />
+                <span className="text-sm font-medium">25K+ Utilisateurs</span>
+              </div>
+              <div className="flex items-center">
+                <TrendingUp className="h-5 w-5 mr-2" />
+                <span className="text-sm font-medium">92% Récupération</span>
+              </div>
             </div>
           </div>
         </div>
@@ -199,6 +237,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             >
               Commencer la Recherche
             </button>
+            
+            <div className="mt-8 text-center">
+              <p className="text-gray-500 text-sm">
+                🔒 Vos données sont protégées et chiffrées • Service disponible 24h/24
+              </p>
+            </div>
           </div>
         </div>
       </section>

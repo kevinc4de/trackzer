@@ -2,58 +2,62 @@ import React, { useState } from 'react';
 import { Search, MapPin, Calendar, User, Phone, Mail, AlertCircle, CheckCircle, Clock, Smartphone } from 'lucide-react';
 import { PhoneType, SearchResult } from '../types';
 import { MapComponent } from './MapComponent';
-import { phoneService } from '../services/phoneService';
+import { usePhoneSearch } from '../hooks/usePhoneSearch';
+import { validation } from '../utils/validation';
+import { analytics } from '../utils/analytics';
+import { errorHandler } from '../utils/errorHandler';
 
 export const SearchPhone: React.FC = () => {
   const [imei, setImei] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [searchPerformed, setSearchPerformed] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [validationError, setValidationError] = useState<string>('');
+  
+  const {
+    searchResults,
+    isSearching,
+    error,
+    searchHistory,
+    searchPhone: performSearch,
+    clearResults,
+    clearError,
+    getSearchStats
+  } = usePhoneSearch();
 
-  const searchPhone = async () => {
+  const handleSearch = async () => {
     if (!imei.trim()) return;
     
-    setIsSearching(true);
+    // Validation côté client
+    const imeiValidation = validation.validateIMEI(imei);
+    if (!imeiValidation.isValid) {
+      setValidationError(imeiValidation.error || 'IMEI invalide');
+      return;
+    }
+    
+    setValidationError('');
     setSearchPerformed(false);
-    setError('');
     
     try {
-      const phones = await phoneService.searchByIMEI(imei);
+      await performSearch(imei);
+      setSearchPerformed(true);
       
-      const results: SearchResult[] = phones.map(phone => {
-        let confidence = 0;
-        let matchType: 'exact' | 'partial' | 'similar' = 'similar';
-        
-        if (phone.imei === imei) {
-          confidence = 100;
-          matchType = 'exact';
-        } else if (phone.imei.includes(imei) || imei.includes(phone.imei.slice(0, 8))) {
-          confidence = 75;
-          matchType = 'partial';
-        } else if (phone.imei.slice(0, 6) === imei.slice(0, 6)) {
-          confidence = 30;
-          matchType = 'similar';
-        }
-        
-        return {
-          phone,
-          confidence,
-          lastSeen: new Date(phone.reportedDate).toLocaleString('fr-FR'),
-          matchType
-        };
-      });
-      
-      results.sort((a, b) => b.confidence - a.confidence);
-      setSearchResults(results);
+      // Track search analytics
+      analytics.trackSearch(imei, searchResults.length);
     } catch (error) {
-      console.error('Search error:', error);
-      setError(error instanceof Error ? error.message : 'Erreur lors de la recherche');
+      const appError = errorHandler.handleNetworkError(error, 'phone_search');
+      analytics.trackError(appError.message, 'search');
     } finally {
-      setIsSearching(false);
       setSearchPerformed(true);
     }
   };
+
+  const handleImeiChange = (value: string) => {
+    const cleanValue = value.replace(/\D/g, '').slice(0, 15);
+    setImei(cleanValue);
+    setValidationError('');
+    clearError();
+  };
+
+  const searchStats = getSearchStats();
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -129,22 +133,28 @@ export const SearchPhone: React.FC = () => {
                   type="text"
                   id="imei"
                   value={imei}
-                  onChange={(e) => {
-                    setImei(e.target.value.replace(/\D/g, '').slice(0, 15));
-                    setError('');
-                  }}
+                  onChange={(e) => handleImeiChange(e.target.value)}
                   placeholder="Exemple: 356938035643809"
-                  className="trackzer-input w-full px-6 py-4 text-lg"
+                  className={`trackzer-input w-full px-6 py-4 text-lg ${
+                    validationError ? 'border-red-300 focus:border-red-500' : ''
+                  }`}
                   maxLength={15}
                 />
-                <p className="mt-2 text-sm text-gray-500">
-                  💡 Tapez *#06# sur votre téléphone pour obtenir l'IMEI
-                </p>
+                <div className="mt-2 space-y-1">
+                  <p className="text-sm text-gray-500">
+                    💡 Tapez *#06# sur votre téléphone pour obtenir l'IMEI
+                  </p>
+                  {imei.length > 0 && (
+                    <p className="text-xs text-gray-400">
+                      {imei.length}/15 chiffres
+                    </p>
+                  )}
+                </div>
               </div>
               
               <div className="flex items-end">
                 <button
-                  onClick={searchPhone}
+                  onClick={handleSearch}
                   disabled={!imei.trim() || isSearching}
                   className="trackzer-button px-8 py-4 text-white font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center paypal-shadow"
                 >
@@ -164,9 +174,27 @@ export const SearchPhone: React.FC = () => {
             </div>
           </div>
 
-          {error && (
+          {(error || validationError) && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800 font-medium">{error}</p>
+              <p className="text-red-800 font-medium">{validationError || error}</p>
+            </div>
+          )}
+
+          {/* Search History */}
+          {searchHistory.length > 0 && !searchPerformed && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="text-sm font-semibold text-blue-800 mb-2">Recherches récentes:</h4>
+              <div className="flex flex-wrap gap-2">
+                {searchHistory.slice(0, 5).map((historyImei, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setImei(historyImei)}
+                    className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full transition-colors duration-200"
+                  >
+                    {historyImei}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -178,10 +206,35 @@ export const SearchPhone: React.FC = () => {
                     <h3 className="text-2xl font-bold text-gray-900">
                       Résultats de recherche ({searchResults.length})
                     </h3>
-                    <div className="text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full">
-                      Recherche: {imei}
+                    <div className="flex items-center space-x-4">
+                      <div className="text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-full">
+                        Recherche: {imei}
+                      </div>
+                      {searchStats.averageConfidence > 0 && (
+                        <div className="text-sm text-blue-600 bg-blue-100 px-4 py-2 rounded-full">
+                          Confiance moyenne: {searchStats.averageConfidence}%
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {/* Search Statistics */}
+                  {searchStats.totalResults > 1 && (
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <p className="text-2xl font-bold text-green-600">{searchStats.exactMatches}</p>
+                        <p className="text-sm text-green-700">Correspondances exactes</p>
+                      </div>
+                      <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                        <p className="text-2xl font-bold text-yellow-600">{searchStats.partialMatches}</p>
+                        <p className="text-sm text-yellow-700">Correspondances partielles</p>
+                      </div>
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <p className="text-2xl font-bold text-blue-600">{searchStats.averageConfidence}%</p>
+                        <p className="text-sm text-blue-700">Confiance moyenne</p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Map showing all results */}
                   <div className="trackzer-card rounded-lg p-6 paypal-shadow">

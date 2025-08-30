@@ -10,7 +10,7 @@ export interface GeolocationResult {
 
 export const geolocationService = {
   // Obtenir la position actuelle avec géolocalisation HTML5 améliorée
-  async getCurrentPosition(): Promise<GeolocationResult> {
+  async getCurrentPosition(options?: PositionOptions): Promise<GeolocationResult> {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         // Fallback vers une localisation aléatoire au Cameroun
@@ -25,10 +25,11 @@ export const geolocationService = {
         return;
       }
 
-      const options: PositionOptions = {
+      const defaultOptions: PositionOptions = {
         enableHighAccuracy: true,
         timeout: 15000, // Augmenté à 15 secondes
-        maximumAge: 60000 // 1 minute
+        maximumAge: 60000, // 1 minute
+        ...options
       };
 
       // Essayer d'abord avec haute précision
@@ -89,7 +90,7 @@ export const geolocationService = {
             });
           }
         },
-        options
+        defaultOptions
       );
     });
   },
