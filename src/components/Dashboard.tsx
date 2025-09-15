@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { BarChart3, MapPin, TrendingUp, AlertTriangle, CheckCircle, Clock, Users, Phone, Smartphone } from 'lucide-react';
 import { PhoneType } from '../types';
 import { MapComponent } from './MapComponent';
-import { phoneService } from '../services/phoneService';
+import { phoneService, DashboardStats } from '../services/phoneService';
 
 export const Dashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30d');
   const [phones, setPhones] = useState<PhoneType[]>([]);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     total: 0,
     lost: 0,
     stolen: 0,

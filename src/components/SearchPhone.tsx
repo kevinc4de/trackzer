@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { Search, MapPin, Calendar, User, Phone, Mail, AlertCircle, CheckCircle, Clock, Smartphone } from 'lucide-react';
-import { PhoneType, SearchResult } from '../types';
+import { PhoneType } from '../types';
 import { MapComponent } from './MapComponent';
 import { usePhoneSearch } from '../hooks/usePhoneSearch';
 import { validation } from '../utils/validation';
 import { analytics } from '../utils/analytics';
 import { errorHandler } from '../utils/errorHandler';
+
+interface SearchResult {
+  phone: PhoneType;
+  confidence: number;
+  lastSeen: string;
+}
 
 export const SearchPhone: React.FC = () => {
   const [imei, setImei] = useState('');

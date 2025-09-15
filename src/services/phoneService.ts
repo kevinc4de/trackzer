@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { PhoneType } from '../types';
 import { mockPhones } from '../data/mockData';
 import { errorHandler } from '../utils/errorHandler';
 import { cache } from '../utils/cache';
@@ -9,27 +10,65 @@ export interface CreatePhoneData {
   model: string;
   status: 'stolen' | 'lost' | 'found';
   location: string;
-  coordinates?: {
-    lat: number;
-    lng: number;
-  };
+  location_lat?: number;
+  location_lng?: number;
   description?: string;
-  reporterName: string;
-  reporterPhone: string;
-  reporterEmail?: string;
+  owner_name: string;
+  owner_phone: string;
+  owner_email?: string;
+  reward?: number;
 }
 
-export interface PhoneRecord extends CreatePhoneData {
+export interface PhoneRecord {
   id: string;
+  imei: string;
+  brand: string;
+  model: string;
+  status: 'stolen' | 'lost' | 'found';
+  location: string;
+  location_lat: number | null;
+  location_lng: number | null;
+  description: string | null;
+  owner_name: string;
+  owner_phone: string;
+  owner_email: string | null;
+  reward: number | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface SearchStats {
-  totalSearches: number;
-  exactMatches: number;
-  partialMatches: number;
-  averageConfidence: number;
+export interface DashboardStats {
+  total: number;
+  lost: number;
+  stolen: number;
+  found: number;
+  recovery_rate: number;
+}
+
+// Convert PhoneRecord from database to PhoneType for frontend
+function convertPhoneRecordToPhoneType(record: PhoneRecord): PhoneType {
+  return {
+    id: record.id,
+    imei: record.imei,
+    brand: record.brand,
+    model: record.model,
+    status: record.status,
+    description: record.description || '',
+    reportedDate: record.created_at,
+    lastKnownLocation: {
+      address: record.location,
+      coordinates: record.location_lat && record.location_lng ? {
+        lat: record.location_lat,
+        lng: record.location_lng
+      } : undefined
+    },
+    owner: {
+      name: record.owner_name,
+      phone: record.owner_phone,
+      email: record.owner_email || ''
+    },
+    reward: record.reward || undefined
+  };
 }
 
 class PhoneService {
@@ -40,8 +79,18 @@ class PhoneService {
       const { data: result, error } = await supabase
         .from('phones')
         .insert([{
-          ...data,
-          coordinates: data.coordinates ? JSON.stringify(data.coordinates) : null
+          imei: data.imei,
+          brand: data.brand,
+          model: data.model,
+          status: data.status,
+          location: data.location,
+          location_lat: data.location_lat || null,
+          location_lng: data.location_lng || null,
+          description: data.description || null,
+          owner_name: data.owner_name,
+          owner_phone: data.owner_phone,
+          owner_email: data.owner_email || null,
+          reward: data.reward || null
         }])
         .select()
         .single();
@@ -50,21 +99,28 @@ class PhoneService {
         throw errorHandler.handleDatabaseError(error);
       }
 
-      // Invalidate cache
-      cache.clear('phones_*');
-      cache.clear('stats');
+      // Clear relevant caches
+      cache.clear();
 
-      return {
-        ...result,
-        coordinates: result.coordinates ? JSON.parse(result.coordinates) : undefined
-      };
+      return result;
     } catch (error) {
       console.error('Error creating phone record:', error);
       
       // Fallback to mock data for development
       const mockRecord: PhoneRecord = {
-        ...data,
         id: `mock_${Date.now()}`,
+        imei: data.imei,
+        brand: data.brand,
+        model: data.model,
+        status: data.status,
+        location: data.location,
+        location_lat: data.location_lat || null,
+        location_lng: data.location_lng || null,
+        description: data.description || null,
+        owner_name: data.owner_name,
+        owner_phone: data.owner_phone,
+        owner_email: data.owner_email || null,
+        reward: data.reward || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -73,9 +129,9 @@ class PhoneService {
     }
   }
 
-  async searchByIMEI(imei: string): Promise<PhoneRecord[]> {
+  async searchByIMEI(imei: string): Promise<PhoneType[]> {
     const cacheKey = `search_${imei}`;
-    const cached = cache.get<PhoneRecord[]>(cacheKey);
+    const cached = cache.get<PhoneType[]>(cacheKey);
     
     if (cached) {
       return cached;
@@ -92,11 +148,7 @@ class PhoneService {
         throw errorHandler.handleDatabaseError(error);
       }
 
-      const results = data?.map(record => ({
-        ...record,
-        coordinates: record.coordinates ? JSON.parse(record.coordinates) : undefined
-      })) || [];
-
+      const results = (data || []).map(convertPhoneRecordToPhoneType);
       cache.set(cacheKey, results, this.CACHE_TTL);
       return results;
     } catch (error) {
@@ -112,9 +164,9 @@ class PhoneService {
     }
   }
 
-  async getAllPhones(): Promise<PhoneRecord[]> {
+  async getAllPhones(): Promise<PhoneType[]> {
     const cacheKey = 'all_phones';
-    const cached = cache.get<PhoneRecord[]>(cacheKey);
+    const cached = cache.get<PhoneType[]>(cacheKey);
     
     if (cached) {
       return cached;
@@ -131,11 +183,7 @@ class PhoneService {
         throw errorHandler.handleDatabaseError(error);
       }
 
-      const results = data?.map(record => ({
-        ...record,
-        coordinates: record.coordinates ? JSON.parse(record.coordinates) : undefined
-      })) || [];
-
+      const results = (data || []).map(convertPhoneRecordToPhoneType);
       cache.set(cacheKey, results, this.CACHE_TTL);
       return results;
     } catch (error) {
@@ -147,28 +195,56 @@ class PhoneService {
     }
   }
 
-  async getStats(): Promise<SearchStats> {
-    const cacheKey = 'stats';
-    const cached = cache.get<SearchStats>(cacheKey);
+  async getStats(): Promise<DashboardStats> {
+    const cacheKey = 'dashboard_stats';
+    const cached = cache.get<DashboardStats>(cacheKey);
     
     if (cached) {
       return cached;
     }
 
     try {
-      const { count, error } = await supabase
+      // Get total count
+      const { count: totalCount, error: totalError } = await supabase
         .from('phones')
         .select('*', { count: 'exact', head: true });
 
-      if (error) {
-        throw errorHandler.handleDatabaseError(error);
+      if (totalError) {
+        throw errorHandler.handleDatabaseError(totalError);
       }
 
-      const stats: SearchStats = {
-        totalSearches: count || 0,
-        exactMatches: Math.floor((count || 0) * 0.7),
-        partialMatches: Math.floor((count || 0) * 0.3),
-        averageConfidence: 85.5
+      // Get counts by status
+      const { count: lostCount, error: lostError } = await supabase
+        .from('phones')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'lost');
+
+      const { count: stolenCount, error: stolenError } = await supabase
+        .from('phones')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'stolen');
+
+      const { count: foundCount, error: foundError } = await supabase
+        .from('phones')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'found');
+
+      if (lostError || stolenError || foundError) {
+        throw new Error('Error fetching status counts');
+      }
+
+      const total = totalCount || 0;
+      const lost = lostCount || 0;
+      const stolen = stolenCount || 0;
+      const found = foundCount || 0;
+      const recovery_rate = total > 0 ? Math.round((found / total) * 100) : 0;
+
+      const stats: DashboardStats = {
+        total,
+        lost,
+        stolen,
+        found,
+        recovery_rate
       };
 
       cache.set(cacheKey, stats, this.CACHE_TTL);
@@ -176,12 +252,19 @@ class PhoneService {
     } catch (error) {
       console.error('Error fetching stats:', error);
       
-      // Fallback stats
-      const fallbackStats: SearchStats = {
-        totalSearches: mockPhones.length,
-        exactMatches: Math.floor(mockPhones.length * 0.7),
-        partialMatches: Math.floor(mockPhones.length * 0.3),
-        averageConfidence: 85.5
+      // Fallback stats based on mock data
+      const total = mockPhones.length;
+      const lost = mockPhones.filter(p => p.status === 'lost').length;
+      const stolen = mockPhones.filter(p => p.status === 'stolen').length;
+      const found = mockPhones.filter(p => p.status === 'found').length;
+      const recovery_rate = total > 0 ? Math.round((found / total) * 100) : 0;
+
+      const fallbackStats: DashboardStats = {
+        total,
+        lost,
+        stolen,
+        found,
+        recovery_rate
       };
       
       cache.set(cacheKey, fallbackStats, this.CACHE_TTL);
@@ -205,14 +288,10 @@ class PhoneService {
         throw errorHandler.handleDatabaseError(error);
       }
 
-      // Invalidate cache
-      cache.clear('phones_*');
-      cache.clear('all_phones');
+      // Clear relevant caches
+      cache.clear();
 
-      return {
-        ...data,
-        coordinates: data.coordinates ? JSON.parse(data.coordinates) : undefined
-      };
+      return data;
     } catch (error) {
       console.error('Error updating phone status:', error);
       throw error;
@@ -220,10 +299,7 @@ class PhoneService {
   }
 
   clearCache(): void {
-    cache.clear('phones_*');
-    cache.clear('all_phones');
-    cache.clear('stats');
-    cache.clear('search_*');
+    cache.clear();
   }
 }
 
