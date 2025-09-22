@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { AlertTriangle, MapPin, Check, Smartphone, Shield } from 'lucide-react';
+import { AlertTriangle, MapPin, Check, Smartphone, Shield, Loader2 } from 'lucide-react';
 import { MapComponent } from './MapComponent';
 import { LocationInput } from './LocationInput';
 import { usePhoneReport } from '../hooks/usePhoneReport';
 import { validation } from '../utils/validation';
 import { analytics } from '../utils/analytics';
+import { errorHandler } from '../utils/errorHandler';
 
 interface FormData {
   imei: string;
@@ -20,8 +21,8 @@ interface FormData {
   };
   location: {
     address: string;
-    lat?: number;
-    lng?: number;
+    lat: number;
+    lng: number;
   };
   reward?: number;
 }
@@ -41,8 +42,8 @@ export const ReportPhone: React.FC = () => {
     },
     location: {
       address: '',
-      lat: 7.3697,
-      lng: 12.3547
+      lat: 3.8480,
+      lng: 11.5021
     }
   });
 
@@ -84,8 +85,8 @@ export const ReportPhone: React.FC = () => {
       ...prev,
       location: {
         address,
-        lat: lat || prev.location.lat,
-        lng: lng || prev.location.lng
+        lat: lat || 3.8480,
+        lng: lng || 11.5021
       }
     }));
   };
@@ -174,6 +175,7 @@ export const ReportPhone: React.FC = () => {
         brand: formData.brand,
         model: formData.model,
         color: formData.color,
+        color: formData.color,
         status: formData.status,
         description: formData.description,
         reward: formData.reward,
@@ -181,8 +183,8 @@ export const ReportPhone: React.FC = () => {
         owner_phone: formattedPhone,
         owner_email: formData.owner.email,
         location_address: formData.location.address,
-        location_lat: formData.location.lat!,
-        location_lng: formData.location.lng!
+        location_lat: formData.location.lat,
+        location_lng: formData.location.lng
       };
 
       await submitReport(phoneData);
@@ -210,8 +212,8 @@ export const ReportPhone: React.FC = () => {
       },
       location: {
         address: '',
-        lat: 7.3697,
-        lng: 12.3547
+        lat: 3.8480,
+        lng: 11.5021
       }
     });
     setValidationErrors({});
@@ -503,7 +505,7 @@ export const ReportPhone: React.FC = () => {
                 </div>
 
                 {/* Mini Map */}
-                {formData.location.lat && formData.location.lng && (
+                {formData.location.address && (
                   <div>
                     <h4 className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3">Aperçu de la localisation</h4>
                     <MapComponent 

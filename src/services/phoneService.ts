@@ -13,8 +13,9 @@ export interface CreatePhoneData {
   imei: string;
   brand: string;
   model: string;
+  color?: string;
   status: 'stolen' | 'lost' | 'found';
-  location: string;
+  location_address: string;
   location_lat?: number;
   location_lng?: number;
   description?: string;
@@ -111,8 +112,9 @@ class PhoneService {
           imei: data.imei,
           brand: data.brand,
           model: data.model,
+          color: data.color || null,
           status: data.status,
-          location: data.location,
+          location_address: data.location_address,
           location_lat: data.location_lat || null,
           location_lng: data.location_lng || null,
           description: data.description || null,
@@ -141,8 +143,9 @@ class PhoneService {
         imei: data.imei,
         brand: data.brand,
         model: data.model,
+        color: data.color || null,
         status: data.status,
-        location: data.location,
+        location_address: data.location_address,
         location_lat: data.location_lat || null,
         location_lng: data.location_lng || null,
         description: data.description || null,
