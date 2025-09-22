@@ -24,6 +24,7 @@ export const Dashboard: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      setError('');
       const [phonesData, statsData] = await Promise.all([
         phoneService.getAllPhones(),
         phoneService.getStats()
@@ -33,7 +34,14 @@ export const Dashboard: React.FC = () => {
       setStats(statsData);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      setError(error instanceof Error ? error.message : 'Erreur lors du chargement');
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du chargement';
+      
+      // Show a user-friendly message for connection issues
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('network')) {
+        setError('Mode hors ligne - Affichage des données de démonstration');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

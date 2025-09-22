@@ -4,6 +4,11 @@ import { mockPhones } from '../data/mockData';
 import { errorHandler } from '../utils/errorHandler';
 import { cache } from '../utils/cache';
 
+// Check if Supabase is properly configured
+const isSupabaseConfigured = () => {
+  return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+};
+
 export interface CreatePhoneData {
   imei: string;
   brand: string;
@@ -75,6 +80,30 @@ class PhoneService {
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   async createPhone(data: CreatePhoneData): Promise<PhoneRecord> {
+    // Use mock data if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      console.warn('Supabase not configured, using mock data');
+      const mockRecord: PhoneRecord = {
+        id: `mock_${Date.now()}`,
+        imei: data.imei,
+        brand: data.brand,
+        model: data.model,
+        color: data.color || null,
+        status: data.status,
+        description: data.description || '',
+        reward: data.reward || null,
+        owner_name: data.owner_name,
+        owner_phone: data.owner_phone,
+        owner_email: data.owner_email || null,
+        location_address: data.location_address,
+        location_lat: data.location_lat || null,
+        location_lng: data.location_lng || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      return mockRecord;
+    }
+
     try {
       const { data: result, error } = await supabase
         .from('phones')
@@ -137,6 +166,16 @@ class PhoneService {
       return cached;
     }
 
+    // Use mock data if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      console.warn('Supabase not configured, using mock data');
+      const mockResults = mockPhones.filter(phone => 
+        phone.imei.toLowerCase().includes(imei.toLowerCase())
+      );
+      cache.set(cacheKey, mockResults, this.CACHE_TTL);
+      return mockResults;
+    }
+
     try {
       const { data, error } = await supabase
         .from('phones')
@@ -172,6 +211,13 @@ class PhoneService {
       return cached;
     }
 
+    // Use mock data if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      console.warn('Supabase not configured, using mock data');
+      cache.set(cacheKey, mockPhones, this.CACHE_TTL);
+      return mockPhones;
+    }
+
     try {
       const { data, error } = await supabase
         .from('phones')
@@ -201,6 +247,27 @@ class PhoneService {
     
     if (cached) {
       return cached;
+    }
+
+    // Use mock data if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      console.warn('Supabase not configured, using mock data');
+      const total = mockPhones.length;
+      const lost = mockPhones.filter(p => p.status === 'lost').length;
+      const stolen = mockPhones.filter(p => p.status === 'stolen').length;
+      const found = mockPhones.filter(p => p.status === 'found').length;
+      const recovery_rate = total > 0 ? Math.round((found / total) * 100) : 0;
+
+      const fallbackStats: DashboardStats = {
+        total,
+        lost,
+        stolen,
+        found,
+        recovery_rate
+      };
+      
+      cache.set(cacheKey, fallbackStats, this.CACHE_TTL);
+      return fallbackStats;
     }
 
     try {
