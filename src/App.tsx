@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
-import { HomePage } from './components/HomePage';
+import HomePage from './components/HomePage';
 import { SearchPhone } from './components/SearchPhone';
 import { ReportPhone } from './components/ReportPhone';
 import { Dashboard } from './components/Dashboard';
