@@ -3,6 +3,7 @@ import { BarChart3, MapPin, TrendingUp, AlertTriangle, CheckCircle, Clock, Users
 import { PhoneType } from '../types';
 import { MapComponent } from './MapComponent';
 import { phoneService, DashboardStats } from '../services/phoneService';
+import { mockPhones } from '../data/mockData';
 
 export const Dashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30d');
@@ -33,15 +34,21 @@ export const Dashboard: React.FC = () => {
       setPhones(phonesData);
       setStats(statsData);
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du chargement';
+      console.warn('Using fallback data due to connection issues:', error);
       
-      // Show a user-friendly message for connection issues
-      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('network')) {
-        setError('Mode hors ligne - Affichage des données de démonstration');
-      } else {
-        setError(errorMessage);
-      }
+      // Use fallback data instead of showing error
+      const fallbackPhones = mockPhones;
+      const fallbackStats = {
+        total: fallbackPhones.length,
+        lost: fallbackPhones.filter(p => p.status === 'lost').length,
+        stolen: fallbackPhones.filter(p => p.status === 'stolen').length,
+        found: fallbackPhones.filter(p => p.status === 'found').length,
+        recovery_rate: Math.round((fallbackPhones.filter(p => p.status === 'found').length / fallbackPhones.length) * 100)
+      };
+      
+      setPhones(fallbackPhones);
+      setStats(fallbackStats);
+      setError('Mode démonstration - Données d\'exemple affichées');
     } finally {
       setLoading(false);
     }

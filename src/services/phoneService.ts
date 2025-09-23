@@ -1,13 +1,9 @@
 import { supabase } from '../lib/supabase';
+import { isSupabaseConfigured } from '../lib/supabase';
 import { PhoneType } from '../types';
 import { mockPhones } from '../data/mockData';
 import { errorHandler } from '../utils/errorHandler';
 import { cache } from '../utils/cache';
-
-// Check if Supabase is properly configured
-const isSupabaseConfigured = () => {
-  return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
-};
 
 export interface CreatePhoneData {
   imei: string;

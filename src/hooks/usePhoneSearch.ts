@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { PhoneType, SearchResult } from '../types';
 import { phoneService } from '../services/phoneService';
+import { mockPhones } from '../data/mockData';
 
 interface UsePhoneSearchReturn {
   searchResults: SearchResult[];
@@ -75,9 +76,39 @@ export const usePhoneSearch = (): UsePhoneSearchReturn => {
       });
       
     } catch (error) {
-      console.error('Search error:', error);
-      setError(error instanceof Error ? error.message : 'Erreur lors de la recherche');
-      setSearchResults([]);
+      console.warn('Search using fallback data:', error);
+      
+      // Use mock data as fallback
+      const mockResults = mockPhones.filter(phone => 
+        phone.imei.toLowerCase().includes(imei.toLowerCase())
+      );
+      
+      const results: SearchResult[] = mockResults.map(phone => {
+        let confidence = 0;
+        let matchType: 'exact' | 'partial' | 'similar' = 'similar';
+        
+        if (phone.imei === imei) {
+          confidence = 100;
+          matchType = 'exact';
+        } else if (phone.imei.includes(imei) || imei.includes(phone.imei.slice(0, 8))) {
+          confidence = 75;
+          matchType = 'partial';
+        } else if (phone.imei.slice(0, 6) === imei.slice(0, 6)) {
+          confidence = 30;
+          matchType = 'similar';
+        }
+        
+        return {
+          phone,
+          confidence,
+          lastSeen: new Date(phone.reportedDate).toLocaleString('fr-FR'),
+          matchType
+        };
+      });
+      
+      results.sort((a, b) => b.confidence - a.confidence);
+      setSearchResults(results);
+      setError('Mode démonstration - Recherche dans les données d\'exemple');
     } finally {
       setIsSearching(false);
     }
