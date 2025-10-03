@@ -1,7 +1,11 @@
 import React from 'react';
 import { Search, Shield, MapPin, Users, Zap, Globe, Lock, TrendingUp } from 'lucide-react';
 
-const HomePage: React.FC = () => {
+interface HomePageProps {
+  onNavigate?: (tab: string) => void;
+}
+
+const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
       {/* Animated Background Elements */}
@@ -54,7 +58,10 @@ const HomePage: React.FC = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <button className="group relative px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-semibold text-white shadow-2xl shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-105 overflow-hidden">
+              <button 
+                onClick={() => onNavigate?.('search')}
+                className="group relative px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-semibold text-white shadow-2xl shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-105 overflow-hidden"
+              >
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <span className="relative flex items-center gap-2">
                   <Search className="w-5 h-5" />
@@ -62,7 +69,10 @@ const HomePage: React.FC = () => {
                 </span>
               </button>
               
-              <button className="group px-8 py-4 bg-slate-800/50 backdrop-blur-sm border border-slate-600 rounded-xl font-semibold text-slate-200 hover:bg-slate-700/50 hover:border-cyan-500/50 transition-all duration-300 hover:scale-105">
+              <button 
+                onClick={() => onNavigate?.('report')}
+                className="group px-8 py-4 bg-slate-800/50 backdrop-blur-sm border border-slate-600 rounded-xl font-semibold text-slate-200 hover:bg-slate-700/50 hover:border-cyan-500/50 transition-all duration-300 hover:scale-105"
+              >
                 <span className="flex items-center gap-2">
                   <Shield className="w-5 h-5" />
                   Signaler un Vol
