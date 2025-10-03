@@ -52,7 +52,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             
             {/* Description */}
             <p className="text-lg text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed">
-              Plateforme avancée de sécurité mobile utilisant l'IA pour tracer et sécuriser 
+              Plateforme avancée de sécurité mobile pour tracer et sécuriser 
               vos appareils avec une précision de niveau militaire
             </p>
 
