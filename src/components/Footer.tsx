@@ -124,7 +124,7 @@ export const Footer: React.FC = () => {
                 </div>
                 <div className="flex items-center text-slate-300 hover:text-cyan-400 transition-colors duration-200">
                   <Phone className="w-4 h-4 mr-3 text-cyan-500" />
-                  <span className="text-sm">+237 6XX XXX XXX</span>
+                  <span className="text-sm">+237 696 215 869</span>
                 </div>
               </div>
 
