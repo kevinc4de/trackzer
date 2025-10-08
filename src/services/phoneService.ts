@@ -77,9 +77,11 @@ class PhoneService {
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   async createPhone(data: CreatePhoneData): Promise<PhoneRecord> {
+    console.log('📡 PhoneService.createPhone appelé avec:', data);
+    
     // Use mock data if Supabase is not configured
     if (!isSupabaseConfigured()) {
-      console.warn('Supabase not configured, using mock data');
+      console.log('⚠️ Supabase non configuré, utilisation des données mock');
       const mockRecord: PhoneRecord = {
         id: `mock_${Date.now()}`,
         imei: data.imei,
@@ -98,6 +100,7 @@ class PhoneService {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+      console.log('✅ Mock record créé:', mockRecord);
       return mockRecord;
     }
 

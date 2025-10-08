@@ -68,7 +68,7 @@ export const ReportPhone: React.FC = () => {
       setFormData(prev => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof typeof prev],
+          ...(prev[parent as keyof typeof prev] as any),
           [child]: value
         }
       }));
@@ -160,10 +160,14 @@ export const ReportPhone: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🚀 Formulaire soumis, validation en cours...');
     
     if (!validateForm()) {
+      console.log('❌ Validation échouée:', validationErrors);
       return;
     }
+
+    console.log('✅ Validation réussie, envoi des données...');
 
     try {
       // Format phone number
@@ -174,7 +178,6 @@ export const ReportPhone: React.FC = () => {
         imei: formData.imei,
         brand: formData.brand,
         model: formData.model,
-        color: formData.color,
         color: formData.color,
         status: formData.status,
         description: formData.description,
@@ -187,11 +190,14 @@ export const ReportPhone: React.FC = () => {
         location_lng: formData.location.lng
       };
 
+      console.log('📤 Données à envoyer:', phoneData);
       await submitReport(phoneData);
+      console.log('✅ Signalement envoyé avec succès!');
       
       // Track successful report
       analytics.trackPhoneReport(formData.status, formData.brand);
     } catch (error) {
+      console.error('❌ Erreur lors de l\'envoi:', error);
       const appError = errorHandler.handleDatabaseError(error, 'phone_report');
       analytics.trackError(appError.message, 'report');
     }
@@ -567,7 +573,7 @@ export const ReportPhone: React.FC = () => {
               
               <button
                 type="submit"
-                disabled={isSubmitting || Object.keys(validationErrors).length > 0}
+                disabled={isSubmitting}
                 className="trackzer-button px-8 sm:px-10 py-3 sm:py-4 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-semibold text-base sm:text-lg paypal-shadow order-1 sm:order-2"
               >
                 {isSubmitting ? (
