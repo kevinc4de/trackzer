@@ -127,7 +127,6 @@ class PhoneService {
           owner_email: data.owner_email || null,
           reward: data.reward || null,
           reported_date: new Date().toISOString()
-          reported_date: new Date().toISOString()
         }])
         .select()
         .single();
@@ -159,6 +158,7 @@ class PhoneService {
         owner_phone: data.owner_phone,
         owner_email: data.owner_email || '',
         reward: data.reward || 0,
+        reported_date: new Date().toISOString(),
         reported_date: new Date().toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

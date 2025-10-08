@@ -5,9 +5,9 @@ export interface PhoneType {
   model: string;
   color: string;
   status: 'lost' | 'stolen' | 'found';
-  reportedDate: string;
-  lastKnownLocation: {
     address: string;
+    lat: number;
+    lng: number;
     lat: number;
     lng: number;
   };
