@@ -64,10 +64,14 @@ function App() {
     setAlerts(prev => prev.filter(alert => alert.id !== id));
   };
 
+  const handleNavigation = (tab: string) => {
+    console.log('Navigation vers:', tab); // Debug log
+    setActiveTab(tab);
+  };
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
-        return <HomePage onNavigate={setActiveTab} />;
+        return <HomePage onNavigate={handleNavigation} />;
       case 'search':
         return <SearchPhone />;
       case 'report':
@@ -75,14 +79,14 @@ function App() {
       case 'dashboard':
         return <Dashboard />;
       default:
-        return <HomePage onNavigate={setActiveTab} />;
+        return <HomePage onNavigate={handleNavigation} />;
     }
   };
 
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50">
-        <Header activeTab={activeTab} onTabChange={setActiveTab} />
+        <Header activeTab={activeTab} onTabChange={handleNavigation} />
         
         <main>
           {renderContent()}
