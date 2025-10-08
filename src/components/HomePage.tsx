@@ -70,7 +70,10 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               </button>
               
               <button 
-                onClick={() => onNavigate && onNavigate('report')}
+                onClick={() => {
+                  console.log('Bouton Signaler cliqué');
+                  onNavigate?.('report');
+                }}
                 className="group px-8 py-4 bg-slate-800/50 backdrop-blur-sm border border-slate-600 rounded-xl font-semibold text-slate-200 hover:bg-slate-700/50 hover:border-cyan-500/50 transition-all duration-300 hover:scale-105"
               >
                 <span className="flex items-center gap-2">

@@ -68,6 +68,7 @@ function App() {
     console.log('Navigation vers:', tab); // Debug log
     setActiveTab(tab);
   };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
