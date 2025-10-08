@@ -7,9 +7,9 @@ export interface PhoneType {
   status: 'lost' | 'stolen' | 'found';
   reportedDate: string;
   lastKnownLocation: {
+    address: string;
     lat: number;
     lng: number;
-    address: string;
   };
   owner: {
     name: string;
@@ -17,7 +17,7 @@ export interface PhoneType {
     email: string;
   };
   description: string;
-  reward?: number;
+  reward: number;
 }
 
 export interface SearchResult {

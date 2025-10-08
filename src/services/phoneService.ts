@@ -12,8 +12,8 @@ export interface CreatePhoneData {
   color?: string;
   status: 'stolen' | 'lost' | 'found';
   location_address: string;
-  location_lat?: number;
-  location_lng?: number;
+  location_lat: number;
+  location_lng: number;
   description?: string;
   owner_name: string;
   owner_phone: string;
@@ -26,15 +26,17 @@ export interface PhoneRecord {
   imei: string;
   brand: string;
   model: string;
+  color: string | null;
   status: 'stolen' | 'lost' | 'found';
-  location: string;
-  location_lat: number | null;
-  location_lng: number | null;
-  description: string | null;
+  location_address: string;
+  location_lat: number;
+  location_lng: number;
+  description: string;
   owner_name: string;
   owner_phone: string;
-  owner_email: string | null;
-  reward: number | null;
+  owner_email: string;
+  reward: number;
+  reported_date: string;
   created_at: string;
   updated_at: string;
 }
@@ -90,13 +92,14 @@ class PhoneService {
         color: data.color || null,
         status: data.status,
         description: data.description || '',
-        reward: data.reward || null,
+        reward: data.reward || 0,
         owner_name: data.owner_name,
         owner_phone: data.owner_phone,
-        owner_email: data.owner_email || null,
+        owner_email: data.owner_email || '',
         location_address: data.location_address,
-        location_lat: data.location_lat || null,
-        location_lng: data.location_lng || null,
+        location_lat: data.location_lat,
+        location_lng: data.location_lng,
+        reported_date: new Date().toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -114,13 +117,14 @@ class PhoneService {
           color: data.color || null,
           status: data.status,
           location_address: data.location_address,
-          location_lat: data.location_lat || null,
-          location_lng: data.location_lng || null,
+          location_lat: data.location_lat,
+          location_lng: data.location_lng,
           description: data.description || null,
           owner_name: data.owner_name,
           owner_phone: data.owner_phone,
           owner_email: data.owner_email || null,
-          reward: data.reward || null
+          reward: data.reward || null,
+          reported_date: new Date().toISOString()
         }])
         .select()
         .single();
@@ -145,13 +149,14 @@ class PhoneService {
         color: data.color || null,
         status: data.status,
         location_address: data.location_address,
-        location_lat: data.location_lat || null,
-        location_lng: data.location_lng || null,
-        description: data.description || null,
+        location_lat: data.location_lat,
+        location_lng: data.location_lng,
+        description: data.description || '',
         owner_name: data.owner_name,
         owner_phone: data.owner_phone,
-        owner_email: data.owner_email || null,
-        reward: data.reward || null,
+        owner_email: data.owner_email || '',
+        reward: data.reward || 0,
+        reported_date: new Date().toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
