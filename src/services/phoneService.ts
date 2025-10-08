@@ -27,6 +27,7 @@ export interface PhoneRecord {
   brand: string;
   model: string;
   color: string | null;
+  color: string | null;
   status: 'stolen' | 'lost' | 'found';
   location_address: string;
   location_lat: number;
@@ -36,6 +37,7 @@ export interface PhoneRecord {
   owner_phone: string;
   owner_email: string;
   reward: number;
+  reported_date: string;
   reported_date: string;
   created_at: string;
   updated_at: string;
@@ -124,6 +126,7 @@ class PhoneService {
           owner_phone: data.owner_phone,
           owner_email: data.owner_email || null,
           reward: data.reward || null,
+          reported_date: new Date().toISOString()
           reported_date: new Date().toISOString()
         }])
         .select()
