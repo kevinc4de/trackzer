@@ -55,28 +55,37 @@ interface MapComponentProps {
   height?: string;
 }
 
-export const MapComponent: React.FC<MapComponentProps> = ({ 
-  phones, 
+export const MapComponent: React.FC<MapComponentProps> = ({
+  phones,
   center = [7.3697, 12.3547], // Cameroon center coordinates
   zoom = 6,
   height = "400px"
 }) => {
+  // Filter out phones with invalid coordinates
+  const validPhones = phones.filter(phone =>
+    phone.lastKnownLocation &&
+    typeof phone.lastKnownLocation.lat === 'number' &&
+    typeof phone.lastKnownLocation.lng === 'number' &&
+    !isNaN(phone.lastKnownLocation.lat) &&
+    !isNaN(phone.lastKnownLocation.lng)
+  );
+
   // Adjust zoom and center based on phones data
   const getMapBounds = () => {
-    if (phones.length === 0) {
+    if (validPhones.length === 0) {
       return { center, zoom };
     }
 
-    if (phones.length === 1) {
+    if (validPhones.length === 1) {
       return {
-        center: [phones[0].lastKnownLocation.lat, phones[0].lastKnownLocation.lng] as [number, number],
+        center: [validPhones[0].lastKnownLocation.lat, validPhones[0].lastKnownLocation.lng] as [number, number],
         zoom: 10
       };
     }
 
     // Calculate bounds for multiple phones
-    const lats = phones.map(p => p.lastKnownLocation.lat);
-    const lngs = phones.map(p => p.lastKnownLocation.lng);
+    const lats = validPhones.map(p => p.lastKnownLocation.lat);
+    const lngs = validPhones.map(p => p.lastKnownLocation.lng);
     
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
@@ -136,8 +145,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        
-        {phones.map((phone) => (
+
+        {validPhones.map((phone) => (
           <Marker
             key={phone.id}
             position={[phone.lastKnownLocation.lat, phone.lastKnownLocation.lng]}

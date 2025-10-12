@@ -27,7 +27,6 @@ export interface PhoneRecord {
   brand: string;
   model: string;
   color: string | null;
-  color: string | null;
   status: 'stolen' | 'lost' | 'found';
   location_address: string;
   location_lat: number;
@@ -37,7 +36,6 @@ export interface PhoneRecord {
   owner_phone: string;
   owner_email: string;
   reward: number;
-  reported_date: string;
   reported_date: string;
   created_at: string;
   updated_at: string;
@@ -62,11 +60,9 @@ function convertPhoneRecordToPhoneType(record: PhoneRecord): PhoneType {
     description: record.description || '',
     reportedDate: record.created_at,
     lastKnownLocation: {
-      address: record.location,
-      coordinates: record.location_lat && record.location_lng ? {
-        lat: record.location_lat,
-        lng: record.location_lng
-      } : undefined
+      lat: record.location_lat,
+      lng: record.location_lng,
+      address: record.location_address
     },
     owner: {
       name: record.owner_name,
@@ -158,7 +154,6 @@ class PhoneService {
         owner_phone: data.owner_phone,
         owner_email: data.owner_email || '',
         reward: data.reward || 0,
-        reported_date: new Date().toISOString(),
         reported_date: new Date().toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
